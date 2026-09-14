@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Weekly Schedule</string>
+    <string name="channel_name">Current task</string>
+    <string name="channel_desc">Shows the task scheduled for the current time.</string>
+</resources>
