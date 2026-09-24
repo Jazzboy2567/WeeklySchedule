@@ -4,24 +4,34 @@ A native Kotlin app to plan your week in time blocks and keep a **persistent, un
 notification** showing what you should be doing right now.
 
 ## What it does
-- Add time blocks per day of the week: pick a **day**, **start/end time**, and **what to do**.
-- Blocks are stored locally (Room database) and grouped by day on the main screen.
-- At each block boundary, an **AlarmManager** alarm fires and updates a single **ongoing**
-  notification (`setOngoing(true)` → it cannot be swiped away) with the current block's task.
-- Survives reboot, app update, and clock/timezone changes via `BootReceiver`, which re-arms
-  the alarm and re-posts the notification.
+- **Google Calendar-style week grid**: Sun–Sat columns, a 24-hour time axis (scrolls, opens at
+  ~6 AM). Long-press and drag a rectangle to create a block; drag across multiple day-columns to
+  put the same block on several days at once (e.g. Sun→Sat, 8–9 AM). Tap an empty slot for a quick
+  1-hour block; tap an existing block to edit it.
+- **Full-screen editor** with a Sun–Sat multi-select chip row, title, and start/end time pickers.
+  Blocks created together share a `groupId`, so editing/deleting affects the whole set. Everything
+  repeats weekly by design (blocks are stored per weekday).
+- **Two notification modes** (Settings):
+  - **Locked** — an ongoing notification (`setOngoing(true)`) that can't be swiped away, shown for
+    the whole active task.
+  - **Reminder** — a normal, dismissable notification that alerts when a task starts and repeats
+    on a chosen interval (Only at start / 15 / 30 / 45 / 60 / 90 / 120 min). The interval control
+    only appears in this mode.
+- An **AlarmManager** alarm fires at the next relevant time (block boundary in Locked mode, next
+  reminder tick in Reminder mode); `BootReceiver` re-arms after reboot, update, and clock/timezone
+  changes.
 
 ## Tech
-- Kotlin, Jetpack Compose (Material 3), Room, AlarmManager, `BroadcastReceiver`s.
-- `minSdk 26`, `targetSdk 34`. No third-party services, no network, no ads yet.
+- Kotlin, Jetpack Compose (Material 3), Room, AlarmManager, `BroadcastReceiver`s, SharedPreferences.
+- `minSdk 26`, `targetSdk 36`. No third-party services, no network, no ads yet.
 
 ## Project layout
 ```
 app/src/main/java/com/untamedflame/schedule/
-  core/BlockResolver.kt        Pure logic: current block + next boundary (unit-tested)
-  data/                        Room entity, DAO, database
-  notify/                      NotificationHelper, ScheduleAlarmScheduler, receivers
-  ui/                          MainActivity (Compose), ScheduleViewModel, Theme
+  core/BlockResolver.kt        Pure logic: current block, next boundary, next reminder (unit-tested)
+  data/                        Room entity/DAO/db, SettingsStore (notification mode + interval)
+  notify/                      NotificationHelper (2 channels), ScheduleAlarmScheduler, receivers
+  ui/                          MainActivity, WeekGrid, BlockEditor, SettingsScreen, ViewModel, Theme
 app/src/test/                  JUnit tests for BlockResolver
 ```
 

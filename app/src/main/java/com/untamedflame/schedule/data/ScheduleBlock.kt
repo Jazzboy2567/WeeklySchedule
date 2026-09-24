@@ -10,6 +10,8 @@ import androidx.room.PrimaryKey
  * @param startMinutes minutes from midnight the block begins (0..1439).
  * @param endMinutes   minutes from midnight the block ends (1..1440, exclusive end).
  * @param title        what the user should be doing during this block.
+ * @param groupId      links blocks created together across multiple days, so editing or
+ *                     deleting one affects the whole set. Empty for legacy single blocks.
  */
 @Entity(tableName = "schedule_blocks")
 data class ScheduleBlock(
@@ -17,7 +19,8 @@ data class ScheduleBlock(
     val dayOfWeek: Int,
     val startMinutes: Int,
     val endMinutes: Int,
-    val title: String
+    val title: String,
+    val groupId: String = ""
 ) {
     val startLabel: String get() = formatMinutes(startMinutes)
     val endLabel: String get() = formatMinutes(endMinutes)

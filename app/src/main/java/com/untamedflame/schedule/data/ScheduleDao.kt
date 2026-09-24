@@ -25,4 +25,7 @@ interface ScheduleDao {
 
     @Delete
     suspend fun delete(block: ScheduleBlock)
+
+    @Query("DELETE FROM schedule_blocks WHERE groupId = :groupId")
+    suspend fun deleteByGroup(groupId: String)
 }

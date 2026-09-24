@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [ScheduleBlock::class], version = 1, exportSchema = false)
+@Database(entities = [ScheduleBlock::class], version = 2, exportSchema = false)
 abstract class ScheduleDatabase : RoomDatabase() {
     abstract fun scheduleDao(): ScheduleDao
 
@@ -18,7 +18,10 @@ abstract class ScheduleDatabase : RoomDatabase() {
                     context.applicationContext,
                     ScheduleDatabase::class.java,
                     "schedule.db"
-                ).build().also { INSTANCE = it }
+                )
+                    // Early-stage app: no schema migration written yet, so recreate on change.
+                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    .build().also { INSTANCE = it }
             }
     }
 }

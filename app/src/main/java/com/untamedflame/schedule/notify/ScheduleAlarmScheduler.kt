@@ -6,7 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.untamedflame.schedule.core.BlockResolver
+import com.untamedflame.schedule.data.NotificationMode
 import com.untamedflame.schedule.data.ScheduleDatabase
+import com.untamedflame.schedule.data.SettingsStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
@@ -31,18 +33,26 @@ object ScheduleAlarmScheduler {
         )
     }
 
-    /** Refresh the notification now and arm the next boundary alarm. Safe to call often. */
+    /** Refresh the notification now and arm the next alarm for the active mode. Safe to call often. */
     suspend fun syncNow(context: Context) {
         val blocks = withContext(Dispatchers.IO) {
             ScheduleDatabase.get(context).scheduleDao().getAll()
         }
-        NotificationHelper.refresh(context, blocks)
+        val settings = SettingsStore(context)
+        val mode = settings.notificationMode
+        NotificationHelper.refresh(context, blocks, mode)
 
         val am = context.getSystemService(AlarmManager::class.java) ?: return
         val pending = alarmIntent(context)
         am.cancel(pending)
 
-        val nextMillis = BlockResolver.nextBoundaryMillis(blocks, LocalDateTime.now()) ?: return
+        val now = LocalDateTime.now()
+        val nextMillis = when (mode) {
+            NotificationMode.LOCKED -> BlockResolver.nextBoundaryMillis(blocks, now)
+            NotificationMode.REMINDER -> BlockResolver.nextReminderMillis(
+                blocks, now, settings.reminderIntervalMinutes
+            )
+        } ?: return
 
         val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms()
         if (canExact) {

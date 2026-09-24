@@ -1,0 +1,150 @@
+package com.untamedflame.schedule.ui
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.untamedflame.schedule.data.NotificationMode
+import com.untamedflame.schedule.data.SettingsStore
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun SettingsScreen(onBack: () -> Unit, onChanged: () -> Unit) {
+    val context = LocalContext.current
+    val store = remember { SettingsStore(context) }
+
+    var mode by remember { mutableStateOf(store.notificationMode) }
+    var interval by remember { mutableIntStateOf(store.reminderIntervalMinutes) }
+
+    fun persist() {
+        store.notificationMode = mode
+        store.reminderIntervalMinutes = interval
+        onChanged()
+    }
+
+    Dialog(onDismissRequest = onBack, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(Modifier.fillMaxSize()) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Settings") },
+                        navigationIcon = {
+                            IconButton(onClick = onBack) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        }
+                    )
+                }
+            ) { padding ->
+                Column(
+                    Modifier
+                        .padding(padding)
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "Notifications",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    ModeOption(
+                        title = "Locked (can't be swiped away)",
+                        subtitle = "An ongoing notification stays on screen for the whole task. " +
+                            "It won't disappear if you swipe it.",
+                        selected = mode == NotificationMode.LOCKED,
+                        onClick = { mode = NotificationMode.LOCKED; persist() }
+                    )
+
+                    ModeOption(
+                        title = "Reminder (can be dismissed)",
+                        subtitle = "A normal notification alerts you when the task starts. " +
+                            "You can swipe it away.",
+                        selected = mode == NotificationMode.REMINDER,
+                        onClick = { mode = NotificationMode.REMINDER; persist() }
+                    )
+
+                    // Repeat interval only makes sense when the notification can be dismissed.
+                    if (mode == NotificationMode.REMINDER) {
+                        HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                        Text("Repeat reminder", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "How often to re-alert while the task is active.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            INTERVALS.forEach { (minutes, label) ->
+                                FilterChip(
+                                    selected = interval == minutes,
+                                    onClick = { interval = minutes; persist() },
+                                    label = { Text(label) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private val INTERVALS = listOf(
+    0 to "Only at start",
+    15 to "15 min",
+    30 to "30 min",
+    45 to "45 min",
+    60 to "60 min",
+    90 to "90 min",
+    120 to "2 hr"
+)
+
+@Composable
+private fun ModeOption(title: String, subtitle: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Column(Modifier.padding(start = 8.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}

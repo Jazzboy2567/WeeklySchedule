@@ -2,7 +2,6 @@ package com.untamedflame.schedule.ui
 
 import android.Manifest
 import android.app.AlarmManager
-import android.app.TimePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -13,20 +12,31 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -34,21 +44,17 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.untamedflame.schedule.data.ScheduleBlock
 import com.untamedflame.schedule.notify.NotificationHelper
 
-private val DAY_NAMES = listOf(
-    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
-)
-
 class MainActivity : ComponentActivity() {
 
     private lateinit var vm: ScheduleViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        NotificationHelper.ensureChannel(this)
+        NotificationHelper.ensureChannels(this)
         setContent {
             WeeklyScheduleTheme {
                 vm = viewModel()
-                ScheduleScreen(vm)
+                AppRoot(vm)
             }
         }
     }
@@ -59,16 +65,49 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@Composable
+private fun AppRoot(vm: ScheduleViewModel) {
+    var showSettings by remember { mutableStateOf(false) }
+    var editor by remember { mutableStateOf<EditorTarget?>(null) }
+
+    ScheduleScreen(
+        vm = vm,
+        onOpenSettings = { showSettings = true },
+        onCreate = { days, start, end -> editor = EditorTarget(null, days, start, end, "") },
+        onEdit = { editor = it }
+    )
+
+    editor?.let { target ->
+        BlockEditor(
+            target = target,
+            onDismiss = { editor = null },
+            onSave = {
+                vm.saveGroup(it.groupId, it.days, it.startMinutes, it.endMinutes, it.title)
+                editor = null
+            },
+            onDelete = { gid ->
+                vm.deleteGroup(gid)
+                editor = null
+            }
+        )
+    }
+
+    if (showSettings) {
+        SettingsScreen(onBack = { showSettings = false }, onChanged = { vm.resync() })
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScheduleScreen(vm: ScheduleViewModel) {
+private fun ScheduleScreen(
+    vm: ScheduleViewModel,
+    onOpenSettings: () -> Unit,
+    onCreate: (Set<Int>, Int, Int) -> Unit,
+    onEdit: (EditorTarget) -> Unit
+) {
     val context = LocalContext.current
     val blocks by vm.blocks.collectAsStateWithLifecycle()
 
-    var editing by remember { mutableStateOf<ScheduleBlock?>(null) }
-    var showEditor by remember { mutableStateOf(false) }
-
-    // Ask for notification permission on Android 13+.
     val notifPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { vm.resync() }
@@ -82,7 +121,6 @@ fun ScheduleScreen(vm: ScheduleViewModel) {
         }
     }
 
-    // Detect whether exact alarms are allowed (Android 12+).
     var exactAllowed by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -92,17 +130,18 @@ fun ScheduleScreen(vm: ScheduleViewModel) {
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Weekly Schedule") }) },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { editing = null; showEditor = true },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Add block") }
+        topBar = {
+            TopAppBar(
+                title = { Text("Weekly Schedule") },
+                actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
+                }
             )
         }
     ) { padding ->
-        Column(Modifier.padding(padding).fillMaxSize()) {
-
+        Column(Modifier.padding(padding)) {
             if (!exactAllowed) {
                 ExactAlarmBanner {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -113,52 +152,25 @@ fun ScheduleScreen(vm: ScheduleViewModel) {
                     }
                 }
             }
-
-            if (blocks.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        "No blocks yet.\nTap “Add block” to schedule your week.",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    for (day in 1..7) {
-                        val dayBlocks = blocks.filter { it.dayOfWeek == day }
-                        if (dayBlocks.isNotEmpty()) {
-                            item(key = "header_$day") {
-                                Text(
-                                    DAY_NAMES[day - 1],
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                                )
-                            }
-                            items(dayBlocks, key = { it.id }) { block ->
-                                BlockRow(
-                                    block = block,
-                                    onClick = { editing = block; showEditor = true },
-                                    onDelete = { vm.delete(block) }
-                                )
-                            }
-                        }
-                    }
-                    item { Spacer(Modifier.height(80.dp)) }
-                }
-            }
+            WeekGrid(
+                blocks = blocks,
+                onCreate = onCreate,
+                onBlockClick = { block -> onEdit(targetFor(block, blocks)) }
+            )
         }
     }
+}
 
-    if (showEditor) {
-        BlockEditorDialog(
-            existing = editing,
-            onDismiss = { showEditor = false },
-            onSave = { vm.addOrUpdate(it); showEditor = false }
-        )
-    }
+/** Build an editor target for an existing block, gathering its whole day-group. */
+private fun targetFor(block: ScheduleBlock, all: List<ScheduleBlock>): EditorTarget {
+    val group = all.filter { it.groupId == block.groupId }.ifEmpty { listOf(block) }
+    return EditorTarget(
+        groupId = block.groupId,
+        days = group.map { it.dayOfWeek }.toSet(),
+        startMinutes = block.startMinutes,
+        endMinutes = block.endMinutes,
+        title = block.title
+    )
 }
 
 @Composable
@@ -168,140 +180,13 @@ private fun ExactAlarmBanner(onFix: () -> Unit) {
         modifier = Modifier.fillMaxWidth().padding(12.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Row(
-            Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "Allow exact alarms so reminders switch on time.",
+                "Allow exact alarms so reminders fire on time.",
                 Modifier.weight(1f),
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
             TextButton(onClick = onFix) { Text("Allow") }
         }
     }
-}
-
-@Composable
-private fun BlockRow(block: ScheduleBlock, onClick: () -> Unit, onDelete: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(block.title, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "${block.startLabel} – ${block.endLabel}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete")
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun BlockEditorDialog(
-    existing: ScheduleBlock?,
-    onDismiss: () -> Unit,
-    onSave: (ScheduleBlock) -> Unit
-) {
-    val context = LocalContext.current
-    var title by remember { mutableStateOf(existing?.title ?: "") }
-    var day by remember { mutableStateOf(existing?.dayOfWeek ?: 1) }
-    var start by remember { mutableStateOf(existing?.startMinutes ?: 9 * 60) }
-    var end by remember { mutableStateOf(existing?.endMinutes ?: 10 * 60) }
-    var dayMenuOpen by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
-
-    fun pickTime(initial: Int, onPicked: (Int) -> Unit) {
-        TimePickerDialog(
-            context,
-            { _, h, m -> onPicked(h * 60 + m) },
-            initial / 60, initial % 60, false
-        ).show()
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (existing == null) "New block" else "Edit block") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("What should you do?") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                ExposedDropdownMenuBox(
-                    expanded = dayMenuOpen,
-                    onExpandedChange = { dayMenuOpen = it }
-                ) {
-                    OutlinedTextField(
-                        value = DAY_NAMES[day - 1],
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Day") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(dayMenuOpen) },
-                        modifier = Modifier
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                            .fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = dayMenuOpen,
-                        onDismissRequest = { dayMenuOpen = false }
-                    ) {
-                        DAY_NAMES.forEachIndexed { index, name ->
-                            DropdownMenuItem(
-                                text = { Text(name) },
-                                onClick = { day = index + 1; dayMenuOpen = false }
-                            )
-                        }
-                    }
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(
-                        onClick = { pickTime(start) { start = it } },
-                        modifier = Modifier.weight(1f)
-                    ) { Text("Start: ${ScheduleBlock.formatMinutes(start)}") }
-                    OutlinedButton(
-                        onClick = { pickTime(end) { end = it } },
-                        modifier = Modifier.weight(1f)
-                    ) { Text("End: ${ScheduleBlock.formatMinutes(end)}") }
-                }
-
-                error?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall)
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                when {
-                    title.isBlank() -> error = "Enter what you should be doing."
-                    end <= start -> error = "End time must be after start time."
-                    else -> onSave(
-                        (existing ?: ScheduleBlock(dayOfWeek = day, startMinutes = start,
-                            endMinutes = end, title = title.trim())).copy(
-                            dayOfWeek = day, startMinutes = start, endMinutes = end,
-                            title = title.trim()
-                        )
-                    )
-                }
-            }) { Text("Save") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
-    )
 }

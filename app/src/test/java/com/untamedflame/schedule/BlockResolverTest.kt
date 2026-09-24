@@ -47,4 +47,23 @@ class BlockResolverTest {
     fun nextBoundary_noBlocks_isNull() {
         assertNull(BlockResolver.nextBoundaryMillis(emptyList(), monday9))
     }
+
+    @Test
+    fun nextReminder_repeatsOnInterval_whileBlockActive() {
+        // Block 9:00-11:00 on Monday, 30-min repeats. At 9:30 the next tick is 10:00.
+        val blocks = listOf(block(1, 9 * 60, 11 * 60, "Work"))
+        val expected = LocalDateTime.of(2024, 1, 1, 10, 0)
+            .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        assertEquals(expected, BlockResolver.nextReminderMillis(blocks, monday9, 30))
+    }
+
+    @Test
+    fun nextReminder_zeroInterval_onlyFiresAtStart() {
+        // 9:00-11:00 block; at 9:30 with interval 0 there is no more tick today, so the
+        // next reminder is next Monday's 9:00 start.
+        val blocks = listOf(block(1, 9 * 60, 11 * 60, "Work"))
+        val nextWeekStart = LocalDateTime.of(2024, 1, 8, 9, 0)
+            .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        assertEquals(nextWeekStart, BlockResolver.nextReminderMillis(blocks, monday9, 0))
+    }
 }

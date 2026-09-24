@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class ScheduleViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -18,13 +19,35 @@ class ScheduleViewModel(app: Application) : AndroidViewModel(app) {
     val blocks: StateFlow<List<ScheduleBlock>> =
         dao.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun addOrUpdate(block: ScheduleBlock) = viewModelScope.launch {
-        if (block.id == 0L) dao.insert(block) else dao.update(block)
+    /**
+     * Create or replace a group of identical blocks, one per selected day. Passing an existing
+     * [groupId] replaces that whole group (used when editing); null creates a new group.
+     */
+    fun saveGroup(
+        groupId: String?,
+        days: Set<Int>,
+        startMinutes: Int,
+        endMinutes: Int,
+        title: String
+    ) = viewModelScope.launch {
+        val gid = groupId ?: UUID.randomUUID().toString()
+        dao.deleteByGroup(gid)
+        for (day in days) {
+            dao.insert(
+                ScheduleBlock(
+                    dayOfWeek = day,
+                    startMinutes = startMinutes,
+                    endMinutes = endMinutes,
+                    title = title,
+                    groupId = gid
+                )
+            )
+        }
         ScheduleAlarmScheduler.syncNow(getApplication())
     }
 
-    fun delete(block: ScheduleBlock) = viewModelScope.launch {
-        dao.delete(block)
+    fun deleteGroup(groupId: String) = viewModelScope.launch {
+        dao.deleteByGroup(groupId)
         ScheduleAlarmScheduler.syncNow(getApplication())
     }
 
