@@ -158,7 +158,7 @@ private fun ScheduleScreen(
                 draft = draft,
                 onDraftChange = { draft = it },
                 onCommitDraft = {
-                    draft?.let { d -> onCreate(setOf(d.dayOfWeek), d.startMinutes, d.endMinutes) }
+                    draft?.let { d -> onCreate(d.days, d.startMinutes, d.endMinutes) }
                     draft = null
                 },
                 onCreate = onCreate,

@@ -28,12 +28,18 @@ data class EditorTarget(
     val title: String
 )
 
-/** An in-progress, unsaved block the user is placing/resizing on the grid. */
+/**
+ * An in-progress, unsaved block the user is placing/resizing on the grid.
+ * [colMin]..[colMax] are grid columns (0 = Sun .. 6 = Sat), inclusive, so a draft can span days.
+ */
 data class DraftSel(
-    val dayOfWeek: Int,
+    val colMin: Int,
+    val colMax: Int,
     val startMinutes: Int,
     val endMinutes: Int
-)
+) {
+    val days: Set<Int> get() = (colMin..colMax).map { colToDay(it) }.toSet()
+}
 
 private val BLOCK_PALETTE = listOf(
     Color(0xFF3B5BDB), // indigo

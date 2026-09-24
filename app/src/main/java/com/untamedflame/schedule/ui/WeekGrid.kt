@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
@@ -56,6 +57,7 @@ private val HourHeight = 56.dp
 private val GutterWidth = 52.dp
 private val HeaderHeight = 44.dp
 private val HandleHeight = 16.dp
+private val HandleWidth = 16.dp
 private val IndentStep = 14.dp
 private const val HOURS = 24
 private const val SNAP = 15          // minutes
@@ -156,7 +158,7 @@ fun WeekGrid(
                                 detectTapGestures { o ->
                                     val col = (o.x / colWidthPx).toInt().coerceIn(0, 6)
                                     val start = snap(o.y / hourPx * 60f).coerceIn(0, 1440 - 60)
-                                    onDraftChange(DraftSel(colToDay(col), start, start + 60))
+                                    onDraftChange(DraftSel(col, col, start, start + 60))
                                 }
                             }
                     )
@@ -249,18 +251,18 @@ private fun DraftBlock(
     onDraftChange: (DraftSel?) -> Unit,
     onCommit: () -> Unit
 ) {
-    val col = dayToCol(draft.dayOfWeek)
     val top = HourHeight * (draft.startMinutes / 60f)
     val h = HourHeight * ((draft.endMinutes - draft.startMinutes) / 60f)
+    val w = colWidth * (draft.colMax - draft.colMin + 1)
     val accent = MaterialTheme.colorScheme.primary
 
     Box(
         Modifier
-            .offset(x = colWidth * col, y = top)
-            .width(colWidth)
+            .offset(x = colWidth * draft.colMin, y = top)
+            .width(w)
             .height(h)
     ) {
-        // Body: tap to open editor, drag to move.
+        // Body: tap to open editor, drag to move (both time and day).
         Box(
             Modifier
                 .fillMaxSize()
@@ -271,20 +273,24 @@ private fun DraftBlock(
                     detectTapGestures { onCommit() }
                 }
                 .pointerInput(colWidthPx, hourPx) {
-                    var bStart = 0; var bEnd = 0; var bCol = 0; var aX = 0f; var aY = 0f
+                    var bStart = 0; var bEnd = 0; var bColMin = 0; var bColMax = 0
+                    var aX = 0f; var aY = 0f
                     detectDragGestures(
                         onDragStart = {
                             val d = currentDraft(); if (d != null) {
-                                bStart = d.startMinutes; bEnd = d.endMinutes; bCol = dayToCol(d.dayOfWeek)
+                                bStart = d.startMinutes; bEnd = d.endMinutes
+                                bColMin = d.colMin; bColMax = d.colMax
                             }
                             aX = 0f; aY = 0f
                         },
                         onDrag = { ch, off ->
                             ch.consume(); aX += off.x; aY += off.y
                             val dur = bEnd - bStart
+                            val span = bColMax - bColMin
                             val ns = snap(bStart + aY / hourPx * 60f).coerceIn(0, 1440 - dur)
-                            val nc = ((bCol * colWidthPx + aX) / colWidthPx).roundToInt().coerceIn(0, 6)
-                            onDraftChange(DraftSel(colToDay(nc), ns, ns + dur))
+                            val ncMin = ((bColMin * colWidthPx + aX) / colWidthPx).roundToInt()
+                                .coerceIn(0, 6 - span)
+                            onDraftChange(DraftSel(ncMin, ncMin + span, ns, ns + dur))
                         }
                     )
                 },
@@ -301,26 +307,45 @@ private fun DraftBlock(
             )
         }
 
-        // Top resize handle -> moves the start time.
-        ResizeHandle(
+        // Top / bottom handles -> change the time range.
+        VResizeHandle(
             modifier = Modifier.align(Alignment.TopCenter),
             hourPx = hourPx,
             onBase = { currentDraft()?.startMinutes ?: 0 },
             onDelta = { base, deltaMin ->
-                val d = currentDraft() ?: return@ResizeHandle
+                val d = currentDraft() ?: return@VResizeHandle
                 val ns = snap((base + deltaMin).toFloat()).coerceIn(0, d.endMinutes - MIN_DURATION)
                 onDraftChange(d.copy(startMinutes = ns))
             }
         )
-        // Bottom resize handle -> moves the end time.
-        ResizeHandle(
+        VResizeHandle(
             modifier = Modifier.align(Alignment.BottomCenter),
             hourPx = hourPx,
             onBase = { currentDraft()?.endMinutes ?: 0 },
             onDelta = { base, deltaMin ->
-                val d = currentDraft() ?: return@ResizeHandle
+                val d = currentDraft() ?: return@VResizeHandle
                 val ne = snap((base + deltaMin).toFloat()).coerceIn(d.startMinutes + MIN_DURATION, 1440)
                 onDraftChange(d.copy(endMinutes = ne))
+            }
+        )
+
+        // Left / right handles -> stretch across days.
+        HResizeHandle(
+            modifier = Modifier.align(Alignment.CenterStart),
+            colWidthPx = colWidthPx,
+            onBase = { currentDraft()?.colMin ?: 0 },
+            onDelta = { base, deltaCols ->
+                val d = currentDraft() ?: return@HResizeHandle
+                onDraftChange(d.copy(colMin = (base + deltaCols).coerceIn(0, d.colMax)))
+            }
+        )
+        HResizeHandle(
+            modifier = Modifier.align(Alignment.CenterEnd),
+            colWidthPx = colWidthPx,
+            onBase = { currentDraft()?.colMax ?: 0 },
+            onDelta = { base, deltaCols ->
+                val d = currentDraft() ?: return@HResizeHandle
+                onDraftChange(d.copy(colMax = (base + deltaCols).coerceIn(d.colMin, 6)))
             }
         )
 
@@ -340,7 +365,7 @@ private fun DraftBlock(
 }
 
 @Composable
-private fun ResizeHandle(
+private fun VResizeHandle(
     modifier: Modifier,
     hourPx: Float,
     onBase: () -> Int,
@@ -366,6 +391,39 @@ private fun ResizeHandle(
             Modifier
                 .width(32.dp)
                 .height(4.dp)
+                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
+        )
+    }
+}
+
+@Composable
+private fun HResizeHandle(
+    modifier: Modifier,
+    colWidthPx: Float,
+    onBase: () -> Int,
+    onDelta: (base: Int, deltaCols: Int) -> Unit
+) {
+    Box(
+        modifier
+            .fillMaxHeight()
+            .padding(vertical = HandleHeight)
+            .width(HandleWidth)
+            .pointerInput(colWidthPx) {
+                var base = 0; var acc = 0f
+                detectHorizontalDragGestures(
+                    onDragStart = { base = onBase(); acc = 0f },
+                    onHorizontalDrag = { ch, dx ->
+                        ch.consume(); acc += dx
+                        onDelta(base, (acc / colWidthPx).roundToInt())
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            Modifier
+                .width(4.dp)
+                .height(32.dp)
                 .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
         )
     }
