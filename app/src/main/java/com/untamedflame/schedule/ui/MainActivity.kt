@@ -107,6 +107,7 @@ private fun ScheduleScreen(
 ) {
     val context = LocalContext.current
     val blocks by vm.blocks.collectAsStateWithLifecycle()
+    var draft by remember { mutableStateOf<DraftSel?>(null) }
 
     val notifPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -154,6 +155,12 @@ private fun ScheduleScreen(
             }
             WeekGrid(
                 blocks = blocks,
+                draft = draft,
+                onDraftChange = { draft = it },
+                onCommitDraft = {
+                    draft?.let { d -> onCreate(setOf(d.dayOfWeek), d.startMinutes, d.endMinutes) }
+                    draft = null
+                },
                 onCreate = onCreate,
                 onBlockClick = { block -> onEdit(targetFor(block, blocks)) }
             )

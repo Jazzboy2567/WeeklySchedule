@@ -28,6 +28,13 @@ data class EditorTarget(
     val title: String
 )
 
+/** An in-progress, unsaved block the user is placing/resizing on the grid. */
+data class DraftSel(
+    val dayOfWeek: Int,
+    val startMinutes: Int,
+    val endMinutes: Int
+)
+
 private val BLOCK_PALETTE = listOf(
     Color(0xFF3B5BDB), // indigo
     Color(0xFF2B8A3E), // green

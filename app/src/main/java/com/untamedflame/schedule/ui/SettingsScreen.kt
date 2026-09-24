@@ -81,17 +81,13 @@ fun SettingsScreen(onBack: () -> Unit, onChanged: () -> Unit) {
                     )
 
                     ModeOption(
-                        title = "Locked (can't be swiped away)",
-                        subtitle = "An ongoing notification stays on screen for the whole task. " +
-                            "It won't disappear if you swipe it.",
+                        title = "Locked",
                         selected = mode == NotificationMode.LOCKED,
                         onClick = { mode = NotificationMode.LOCKED; persist() }
                     )
 
                     ModeOption(
-                        title = "Reminder (can be dismissed)",
-                        subtitle = "A normal notification alerts you when the task starts. " +
-                            "You can swipe it away.",
+                        title = "Reminder",
                         selected = mode == NotificationMode.REMINDER,
                         onClick = { mode = NotificationMode.REMINDER; persist() }
                     )
@@ -99,12 +95,7 @@ fun SettingsScreen(onBack: () -> Unit, onChanged: () -> Unit) {
                     // Repeat interval only makes sense when the notification can be dismissed.
                     if (mode == NotificationMode.REMINDER) {
                         HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                        Text("Repeat reminder", style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            "How often to re-alert while the task is active.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Text("Repeat every", style = MaterialTheme.typography.titleSmall)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             INTERVALS.forEach { (minutes, label) ->
                                 FilterChip(
@@ -132,19 +123,17 @@ private val INTERVALS = listOf(
 )
 
 @Composable
-private fun ModeOption(title: String, subtitle: String, selected: Boolean, onClick: () -> Unit) {
+private fun ModeOption(title: String, selected: Boolean, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(selected = selected, onClick = onClick)
-        Column(Modifier.padding(start = 8.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Text(
+            title,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(start = 8.dp)
+        )
     }
 }
