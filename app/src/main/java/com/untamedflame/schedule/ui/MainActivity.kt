@@ -42,6 +42,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.untamedflame.schedule.data.ScheduleBlock
+import com.untamedflame.schedule.data.SettingsStore
 import com.untamedflame.schedule.notify.NotificationHelper
 
 class MainActivity : ComponentActivity() {
@@ -51,10 +52,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         NotificationHelper.ensureChannels(this)
+        val settings = SettingsStore(this)
         setContent {
-            WeeklyScheduleTheme {
+            var darkTheme by remember { mutableStateOf(settings.darkTheme) }
+            WeeklyScheduleTheme(darkTheme = darkTheme) {
                 vm = viewModel()
-                AppRoot(vm)
+                AppRoot(vm, onThemeChange = { darkTheme = it })
             }
         }
     }
@@ -66,7 +69,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun AppRoot(vm: ScheduleViewModel) {
+private fun AppRoot(vm: ScheduleViewModel, onThemeChange: (Boolean) -> Unit) {
     var showSettings by remember { mutableStateOf(false) }
     var editor by remember { mutableStateOf<EditorTarget?>(null) }
 
@@ -93,7 +96,11 @@ private fun AppRoot(vm: ScheduleViewModel) {
     }
 
     if (showSettings) {
-        SettingsScreen(onBack = { showSettings = false }, onChanged = { vm.resync() })
+        SettingsScreen(
+            onBack = { showSettings = false },
+            onChanged = { vm.resync() },
+            onThemeChange = onThemeChange
+        )
     }
 }
 

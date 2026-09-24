@@ -40,12 +40,13 @@ import com.untamedflame.schedule.data.SettingsStore
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onChanged: () -> Unit) {
+fun SettingsScreen(onBack: () -> Unit, onChanged: () -> Unit, onThemeChange: (Boolean) -> Unit) {
     val context = LocalContext.current
     val store = remember { SettingsStore(context) }
 
     var mode by remember { mutableStateOf(store.notificationMode) }
     var interval by remember { mutableIntStateOf(store.reminderIntervalMinutes) }
+    var dark by remember { mutableStateOf(store.darkTheme) }
 
     fun persist() {
         store.notificationMode = mode
@@ -106,6 +107,23 @@ fun SettingsScreen(onBack: () -> Unit, onChanged: () -> Unit) {
                             }
                         }
                     }
+
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    Text(
+                        "Appearance",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    ModeOption(
+                        title = "Light",
+                        selected = !dark,
+                        onClick = { dark = false; store.darkTheme = false; onThemeChange(false) }
+                    )
+                    ModeOption(
+                        title = "Dark",
+                        selected = dark,
+                        onClick = { dark = true; store.darkTheme = true; onThemeChange(true) }
+                    )
                 }
             }
         }

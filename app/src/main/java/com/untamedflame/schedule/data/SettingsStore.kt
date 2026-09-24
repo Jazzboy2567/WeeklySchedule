@@ -31,9 +31,15 @@ class SettingsStore(context: Context) {
         get() = prefs.getInt(KEY_INTERVAL, 60)
         set(value) = prefs.edit().putInt(KEY_INTERVAL, value.coerceIn(0, 24 * 60)).apply()
 
+    /** true = dark theme, false = light. Defaults to light. */
+    var darkTheme: Boolean
+        get() = prefs.getBoolean(KEY_DARK, false)
+        set(value) = prefs.edit().putBoolean(KEY_DARK, value).apply()
+
     companion object {
         private const val KEY_MODE = "notification_mode"
         private const val KEY_INTERVAL = "reminder_interval"
+        private const val KEY_DARK = "dark_theme"
         private const val MODE_LOCKED = "locked"
         private const val MODE_REMINDER = "reminder"
     }

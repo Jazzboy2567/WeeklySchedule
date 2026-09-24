@@ -1,6 +1,5 @@
 package com.untamedflame.schedule.ui
 
-import android.app.TimePickerDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -21,8 +21,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -31,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -46,17 +48,13 @@ fun BlockEditor(
     onSave: (EditorTarget) -> Unit,
     onDelete: (String) -> Unit
 ) {
-    val context = LocalContext.current
     var title by remember { mutableStateOf(target.title) }
     var days by remember { mutableStateOf(target.days) }
     var start by remember { mutableIntStateOf(target.startMinutes) }
     var end by remember { mutableIntStateOf(target.endMinutes) }
     var error by remember { mutableStateOf<String?>(null) }
+    var picking by remember { mutableIntStateOf(0) } // 0 none, 1 start, 2 end
     val isEditing = target.groupId != null
-
-    fun pickTime(initial: Int, onPicked: (Int) -> Unit) {
-        TimePickerDialog(context, { _, h, m -> onPicked(h * 60 + m) }, initial / 60, initial % 60, false).show()
-    }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         // Anchor the menu at the top of the screen.
@@ -106,11 +104,11 @@ fun BlockEditor(
 
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedButton(
-                            onClick = { pickTime(start) { start = it } },
+                            onClick = { picking = 1 },
                             modifier = Modifier.weight(1f)
                         ) { Text("From ${ScheduleBlock.formatMinutes(start)}") }
                         OutlinedButton(
-                            onClick = { pickTime(end) { if (it > start) end = it } },
+                            onClick = { picking = 2 },
                             modifier = Modifier.weight(1f)
                         ) { Text("To ${ScheduleBlock.formatMinutes(end)}") }
                     }
@@ -145,6 +143,50 @@ fun BlockEditor(
                             Text("Delete")
                         }
                     }
+                }
+            }
+        }
+    }
+
+    if (picking != 0) {
+        ClockTimeDialog(
+            initialMinutes = if (picking == 1) start else end,
+            onDismiss = { picking = 0 },
+            onConfirm = { m ->
+                if (picking == 1) {
+                    start = m
+                    if (end <= start) end = minOf(1440, start + 60)
+                } else {
+                    end = if (m > start) m else minOf(1440, start + 30)
+                }
+                picking = 0
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ClockTimeDialog(
+    initialMinutes: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    val state = rememberTimePickerState(
+        initialHour = initialMinutes / 60,
+        initialMinute = initialMinutes % 60,
+        is24Hour = false
+    )
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(20.dp), tonalElevation = 6.dp) {
+            Column(
+                Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                TimePicker(state = state)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    TextButton(onClick = { onConfirm(state.hour * 60 + state.minute) }) { Text("OK") }
                 }
             }
         }
