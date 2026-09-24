@@ -253,7 +253,9 @@ private fun BlockEditorDialog(
                         readOnly = true,
                         label = { Text("Day") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(dayMenuOpen) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                            .fillMaxWidth()
                     )
                     ExposedDropdownMenu(
                         expanded = dayMenuOpen,
