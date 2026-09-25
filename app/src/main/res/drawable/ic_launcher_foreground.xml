@@ -1,11 +1,110 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <group android:scaleX="2.2" android:scaleY="2.2" android:translateX="30" android:translateY="30">
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Scale the whole scene into the adaptive-icon safe zone. -->
+    <group
+        android:pivotX="256"
+        android:pivotY="256"
+        android:scaleX="0.70"
+        android:scaleY="0.70">
+
+        <!-- page shadow -->
         <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M11.99,2C6.47,2 2,6.48 2,12s4.47,10 9.99,10C17.52,22 22,17.52 22,12S17.52,2 11.99,2zM12,20c-4.42,0 -8,-3.58 -8,-8s3.58,-8 8,-8 8,3.58 8,8 -3.58,8 -8,8zM12.5,7L11,7v6l5.25,3.15 0.75,-1.23 -4.5,-2.67z" />
+            android:pathData="M150,124 h236 v286 h-236 Z"
+            android:fillColor="#000000"
+            android:fillAlpha="0.13" />
+
+        <!-- notebook page (cream, rounded) -->
+        <path
+            android:pathData="M162,116 h204 a16,16 0 0 1 16,16 v254 a16,16 0 0 1 -16,16 h-204 a16,16 0 0 1 -16,-16 v-254 a16,16 0 0 1 16,-16 Z"
+            android:fillColor="#FCFBF7" />
+
+        <!-- ruling lines -->
+        <path
+            android:pathData="M188,168 L360,168 M188,206 L360,206 M188,244 L360,244 M188,282 L360,282 M188,320 L360,320 M188,358 L360,358"
+            android:strokeColor="#000000"
+            android:strokeAlpha="0.16"
+            android:strokeWidth="5"
+            android:strokeLineCap="round" />
+
+        <!-- spiral binding strip -->
+        <path
+            android:pathData="M140,132 h14 v254 h-14 Z"
+            android:fillColor="#000000"
+            android:fillAlpha="0.06" />
+
+        <!-- spiral rings -->
+        <path
+            android:pathData="M129,146 h42 a9,9 0 0 1 0,18 h-42 a9,9 0 0 1 0,-18 Z M129,192 h42 a9,9 0 0 1 0,18 h-42 a9,9 0 0 1 0,-18 Z M129,238 h42 a9,9 0 0 1 0,18 h-42 a9,9 0 0 1 0,-18 Z M129,284 h42 a9,9 0 0 1 0,18 h-42 a9,9 0 0 1 0,-18 Z M129,330 h42 a9,9 0 0 1 0,18 h-42 a9,9 0 0 1 0,-18 Z"
+            android:fillColor="#C2C8D0"
+            android:strokeColor="#7C838C"
+            android:strokeWidth="2" />
+
+        <!-- ring holes -->
+        <path
+            android:pathData="M146,155 a4,4 0 1 0 8,0 a4,4 0 1 0 -8,0 Z M146,201 a4,4 0 1 0 8,0 a4,4 0 1 0 -8,0 Z M146,247 a4,4 0 1 0 8,0 a4,4 0 1 0 -8,0 Z M146,293 a4,4 0 1 0 8,0 a4,4 0 1 0 -8,0 Z M146,339 a4,4 0 1 0 8,0 a4,4 0 1 0 -8,0 Z"
+            android:fillColor="#000000"
+            android:fillAlpha="0.13" />
+
+        <!-- pen: black barrel with chrome trim -->
+        <group
+            android:translateX="268"
+            android:translateY="262"
+            android:rotation="-40">
+
+            <path
+                android:pathData="M -95,-7 C -55,-11 -10,-11 45,-10 C 85,-10 112,-10 118,-6 Q 122,-3 122,0 Q 122,3 118,6 C 112,10 85,10 45,10 C -10,11 -55,11 -95,7 Z"
+                android:fillColor="#17171B"
+                android:strokeColor="#000000"
+                android:strokeWidth="1" />
+
+            <!-- short chrome tip -->
+            <path
+                android:pathData="M -114,0 L -95,-7 L -95,7 Z"
+                android:fillColor="#C2C8D0"
+                android:strokeColor="#7C838C"
+                android:strokeWidth="1" />
+
+            <!-- collar -->
+            <path
+                android:pathData="M -98,-8 h6 v16 h-6 Z"
+                android:fillColor="#C2C8D0"
+                android:strokeColor="#7C838C"
+                android:strokeWidth="0.7" />
+
+            <!-- centre band -->
+            <path
+                android:pathData="M -24,-11 h15 v22 h-15 Z"
+                android:fillColor="#C2C8D0"
+                android:strokeColor="#7C838C"
+                android:strokeWidth="0.7" />
+            <path
+                android:pathData="M -20,-11 L -20,11 M -13,-11 L -13,11"
+                android:strokeColor="#7C838C"
+                android:strokeWidth="0.5" />
+
+            <!-- specular highlight -->
+            <path
+                android:pathData="M 4,-6 Q 55,-7 104,-4 L 104,-1 Q 55,-4 4,-3 Z"
+                android:fillColor="#FFFFFF"
+                android:fillAlpha="0.5" />
+
+            <!-- cap trim ring -->
+            <path
+                android:pathData="M 72,-10 h7 v20 h-7 Z"
+                android:fillColor="#C2C8D0"
+                android:strokeColor="#7C838C"
+                android:strokeWidth="0.7" />
+
+            <!-- clip -->
+            <path
+                android:pathData="M 70.5,-17 h37 a2.5,2.5 0 0 1 2.5,2.5 v2 a2.5,2.5 0 0 1 -2.5,2.5 h-37 a2.5,2.5 0 0 1 -2.5,-2.5 v-2 a2.5,2.5 0 0 1 2.5,-2.5 Z"
+                android:fillColor="#C2C8D0"
+                android:strokeColor="#7C838C"
+                android:strokeWidth="1" />
+        </group>
     </group>
 </vector>
