@@ -24,21 +24,31 @@ import java.time.LocalDateTime
  */
 object NotificationHelper {
 
-    const val CHANNEL_LOCKED = "current_block"
+    // Bumped from the original "current_block" (IMPORTANCE_LOW). A channel's importance can't be
+    // raised after creation, so a new id is needed to make the locked notification rank higher.
+    const val CHANNEL_LOCKED = "current_block_v2"
     const val CHANNEL_REMINDER = "reminders"
     const val NOTIFICATION_ID = 1001
 
     fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val mgr = context.getSystemService(NotificationManager::class.java)
+            // Remove the old low-importance channel so it stops showing in app settings.
+            mgr.deleteNotificationChannel("current_block")
+
+            // DEFAULT importance keeps it in the main (top) section rather than the collapsed
+            // "silent" group, but with sound/vibration disabled it stays quiet.
             mgr.createNotificationChannel(
                 NotificationChannel(
                     CHANNEL_LOCKED,
                     context.getString(R.string.channel_locked_name),
-                    NotificationManager.IMPORTANCE_LOW
+                    NotificationManager.IMPORTANCE_DEFAULT
                 ).apply {
                     description = context.getString(R.string.channel_locked_desc)
                     setShowBadge(false)
+                    setSound(null, null)
+                    enableVibration(false)
+                    enableLights(false)
                 }
             )
             mgr.createNotificationChannel(
@@ -77,6 +87,7 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Single line of text: the task name is the title, the time window is the description.
         val builder = NotificationCompat.Builder(
             context,
             if (mode == NotificationMode.LOCKED) CHANNEL_LOCKED else CHANNEL_REMINDER
@@ -84,17 +95,14 @@ object NotificationHelper {
             .setSmallIcon(R.drawable.ic_schedule)
             .setContentTitle(current.title)
             .setContentText("${current.startLabel} – ${current.endLabel}")
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                    .bigText("${current.title}\n${current.startLabel} – ${current.endLabel}")
-            )
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(openIntent)
+            .setWhen(System.currentTimeMillis()) // keep it recent so it ranks near the top
 
         if (mode == NotificationMode.LOCKED) {
             builder.setOngoing(true)
-                .setSilent(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setOnlyAlertOnce(true) // don't buzz on every minute's update
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
         } else {
             builder.setOngoing(false)
                 .setAutoCancel(true)
