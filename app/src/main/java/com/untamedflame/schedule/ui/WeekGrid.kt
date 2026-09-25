@@ -41,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -85,19 +86,40 @@ fun WeekGrid(
         scroll.scrollTo(with(density) { (HourHeight.toPx() * 6).roundToInt() })
     }
 
+    val scheme = MaterialTheme.colorScheme
+    // Subtle backdrop so empty areas aren't flat white/black.
+    val gridBackground = Brush.verticalGradient(
+        listOf(
+            scheme.primaryContainer.copy(alpha = 0.35f),
+            scheme.surface,
+            scheme.surface
+        )
+    )
+
     Column(modifier.fillMaxSize()) {
-        // Day header (fixed).
-        Row(Modifier.fillMaxWidth().height(HeaderHeight)) {
+        // Day header (fixed), gently tinted.
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(HeaderHeight)
+                .background(scheme.primaryContainer.copy(alpha = 0.45f))
+        ) {
             Spacer(Modifier.width(GutterWidth))
-            DAY_LABELS.forEach { label ->
+            DAY_LABELS.forEachIndexed { col, label ->
+                val weekend = col == 0 || col == 6
                 Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                    Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (weekend) scheme.primary else scheme.onSurface
+                    )
                 }
             }
         }
         HorizontalDivider()
 
-        Box(Modifier.weight(1f).verticalScroll(scroll)) {
+        Box(Modifier.weight(1f).verticalScroll(scroll).background(gridBackground)) {
             Row(Modifier.height(totalHeight)) {
                 TimeGutter()
                 BoxWithConstraints(Modifier.weight(1f).fillMaxHeight()) {
@@ -122,9 +144,19 @@ fun WeekGrid(
                         return Selection(days, start, end, cMin, cMax)
                     }
 
-                    // Grid lines.
-                    val lineColor = MaterialTheme.colorScheme.outlineVariant
+                    // Grid lines + subtle shading (weekend columns, alternating hour bands).
+                    val lineColor = scheme.outlineVariant
+                    val weekendTint = scheme.primary.copy(alpha = 0.06f)
+                    val bandTint = scheme.onSurface.copy(alpha = 0.025f)
                     Canvas(Modifier.fillMaxSize()) {
+                        // Alternating hour bands for vertical depth.
+                        for (h in 0 until HOURS step 2) {
+                            drawRect(bandTint, Offset(0f, hourPx * h), androidx.compose.ui.geometry.Size(size.width, hourPx))
+                        }
+                        // Weekend columns (Sun = 0, Sat = 6).
+                        for (c in intArrayOf(0, 6)) {
+                            drawRect(weekendTint, Offset(colWidthPx * c, 0f), androidx.compose.ui.geometry.Size(colWidthPx, size.height))
+                        }
                         for (h in 0..HOURS) {
                             val y = hourPx * h
                             drawLine(lineColor, Offset(0f, y), Offset(size.width, y), 1f)

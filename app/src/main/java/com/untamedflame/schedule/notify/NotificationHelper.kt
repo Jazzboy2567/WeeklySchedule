@@ -29,6 +29,8 @@ object NotificationHelper {
     const val CHANNEL_LOCKED = "current_block_v2"
     const val CHANNEL_REMINDER = "reminders"
     const val NOTIFICATION_ID = 1001
+    const val ACTION_REPOST = "com.untamedflame.schedule.ACTION_REPOST"
+    private const val REQ_REPOST = 43
 
     fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -100,9 +102,19 @@ object NotificationHelper {
             .setWhen(System.currentTimeMillis()) // keep it recent so it ranks near the top
 
         if (mode == NotificationMode.LOCKED) {
+            // Android 14+ lets users swipe away an ongoing notification that isn't tied to a
+            // foreground service. setDeleteIntent fires when that happens, and the receiver
+            // immediately re-posts it — so it effectively can't be dismissed while a task is active.
+            val repost = PendingIntent.getBroadcast(
+                context,
+                REQ_REPOST,
+                Intent(context, BlockAlarmReceiver::class.java).setAction(ACTION_REPOST),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
             builder.setOngoing(true)
                 .setOnlyAlertOnce(true) // don't buzz on every minute's update
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setDeleteIntent(repost)
         } else {
             builder.setOngoing(false)
                 .setAutoCancel(true)
