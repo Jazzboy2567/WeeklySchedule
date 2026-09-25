@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,7 +29,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -115,10 +116,13 @@ private fun ScheduleScreen(
     val context = LocalContext.current
     val blocks by vm.blocks.collectAsStateWithLifecycle()
     var draft by remember { mutableStateOf<DraftSel?>(null) }
+    var showNotifRequired by remember { mutableStateOf(false) }
 
     val notifPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { vm.resync() }
+    ) { granted ->
+        if (granted) vm.resync() else showNotifRequired = true
+    }
 
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -137,9 +141,35 @@ private fun ScheduleScreen(
         }
     }
 
+    if (showNotifRequired) {
+        AlertDialog(
+            onDismissRequest = { showNotifRequired = false },
+            title = { Text("Notifications required") },
+            text = {
+                Text(
+                    "Weekly Schedule works by showing a notification for what you should be " +
+                        "doing right now. Without notification permission the app can't do its job. " +
+                        "Please enable notifications for the app."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showNotifRequired = false
+                    context.startActivity(
+                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    )
+                }) { Text("Open settings") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNotifRequired = false }) { Text("Not now") }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = { Text("Weekly Schedule") },
                 actions = {
                     IconButton(onClick = onOpenSettings) {
