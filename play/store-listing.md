@@ -3,13 +3,13 @@
 Copy/paste these into the Play Console. Character limits noted.
 
 ## App name (max 30)
-Weekly Schedule
+Weekly Scheduler
 
 ## Short description (max 80)
 Plan your week in time blocks with an always-on notification for your current task.
 
 ## Full description (max 4000)
-Weekly Schedule is a simple, private weekly planner. Lay out your whole week on a
+Weekly Scheduler is a simple, private weekly planner. Lay out your whole week on a
 calendar-style grid and let the app tell you what you should be doing right now — with a
 notification that stays put until the task is done.
 
@@ -34,7 +34,7 @@ PRIVATE BY DESIGN
 • No account, no ads, no tracking.
 • Everything you create stays on your device. The app makes no internet connections.
 
-Plan your week once, and let Weekly Schedule keep you on it.
+Plan your week once, and let Weekly Scheduler keep you on it.
 
 ---
 

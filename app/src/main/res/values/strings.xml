@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Weekly Schedule</string>
+    <string name="app_name">Weekly Scheduler</string>
     <string name="channel_locked_name">Active task (locked)</string>
     <string name="channel_locked_desc">Ongoing notification shown while a task is active. Cannot be swiped away.</string>
     <string name="channel_reminder_name">Reminders</string>

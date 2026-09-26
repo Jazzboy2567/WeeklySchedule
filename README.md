@@ -1,7 +1,8 @@
-# Weekly Schedule (Android)
+# Weekly Scheduler (Android)
 
 A native Kotlin app to plan your week in time blocks and keep a **persistent, un-swipeable
-notification** showing what you should be doing right now.
+notification** showing what you should be doing right now. (Project/repo folder: `WeeklySchedule`;
+package `com.untamedflame.schedule`.)
 
 ## What it does
 - **Google Calendar-style week grid**: Sun–Sat columns, a 24-hour time axis (scrolls, opens at

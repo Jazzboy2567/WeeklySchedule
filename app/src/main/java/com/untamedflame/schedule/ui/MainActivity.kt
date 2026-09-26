@@ -147,7 +147,7 @@ private fun ScheduleScreen(
             title = { Text("Notifications required") },
             text = {
                 Text(
-                    "Weekly Schedule works by showing a notification for what you should be " +
+                    "Weekly Scheduler works by showing a notification for what you should be " +
                         "doing right now. Without notification permission the app can't do its job. " +
                         "Please enable notifications for the app."
                 )
@@ -170,7 +170,7 @@ private fun ScheduleScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Weekly Schedule") },
+                title = { Text("Weekly Scheduler") },
                 actions = {
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
