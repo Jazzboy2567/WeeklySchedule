@@ -22,7 +22,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.untamedflame.schedule"
+        applicationId = "com.app.weeklyscheduler"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
