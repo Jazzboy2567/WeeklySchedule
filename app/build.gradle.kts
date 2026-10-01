@@ -25,7 +25,7 @@ android {
         applicationId = "com.app.weeklyscheduler"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0.0"
         vectorDrawables { useSupportLibrary = true }
     }
@@ -43,11 +43,14 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Include native debug symbols so native crashes/ANRs symbolicate on Play.
+            ndk { debugSymbolLevel = "FULL" }
             if (hasReleaseSigning) signingConfig = signingConfigs.getByName("release")
         }
     }
