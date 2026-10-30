@@ -1,17 +1,26 @@
 package com.untamedflame.schedule.ui
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -140,9 +149,66 @@ fun SettingsScreen(onBack: () -> Unit, onChanged: () -> Unit, onThemeChange: (Bo
                         selected = dark,
                         onClick = { dark = true; store.darkTheme = true; onThemeChange(true) }
                     )
+
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    Text(
+                        "Feedback",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { sendFeedback(context) }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.MailOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text("Send feedback", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "Email the developer your suggestions or bugs",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+private const val FEEDBACK_EMAIL = "UntamedFlame@proton.me"
+
+/** Opens the user's email app pre-addressed to the developer, with app/device info appended. */
+private fun sendFeedback(context: Context) {
+    val version = try {
+        context.packageManager.getPackageInfo(context.packageName, 0).versionName
+    } catch (e: Exception) {
+        "?"
+    }
+    val body = buildString {
+        append("\n\n\n—— write your feedback above ——\n")
+        append("App version: ").append(version).append('\n')
+        append("Android: ").append(Build.VERSION.RELEASE).append('\n')
+        append("Device: ").append(Build.MANUFACTURER).append(' ').append(Build.MODEL)
+    }
+    val intent = Intent(Intent.ACTION_SENDTO).apply {
+        data = Uri.parse("mailto:")
+        putExtra(Intent.EXTRA_EMAIL, arrayOf(FEEDBACK_EMAIL))
+        putExtra(Intent.EXTRA_SUBJECT, "Weekly Scheduler feedback")
+        putExtra(Intent.EXTRA_TEXT, body)
+    }
+    try {
+        context.startActivity(Intent.createChooser(intent, "Send feedback"))
+    } catch (e: ActivityNotFoundException) {
+        Toast.makeText(context, "No email app found on this device.", Toast.LENGTH_LONG).show()
     }
 }
 
