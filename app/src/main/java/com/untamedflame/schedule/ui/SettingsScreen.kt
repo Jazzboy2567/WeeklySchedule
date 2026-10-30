@@ -184,7 +184,7 @@ fun SettingsScreen(onBack: () -> Unit, onChanged: () -> Unit, onThemeChange: (Bo
     }
 }
 
-private const val FEEDBACK_EMAIL = "UntamedFlame@proton.me"
+private const val FEEDBACK_EMAIL = "mjnielsen22@gmail.com"
 
 /** Opens the user's email app pre-addressed to the developer, with app/device info appended. */
 private fun sendFeedback(context: Context) {
